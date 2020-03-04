@@ -1,0 +1,2 @@
+open_vins-master/ov_core:open_vins-master/ov_data:open_vins-master/ov_eval:open_vins-master/ov_msckf
+-DCATKIN_DEVEL_PREFIX=/home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/devel -DCMAKE_INSTALL_PREFIX=/home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/install -G Unix Makefiles

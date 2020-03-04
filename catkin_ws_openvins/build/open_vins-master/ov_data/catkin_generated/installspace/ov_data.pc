@@ -1,0 +1,8 @@
+prefix=/home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/install
+
+Name: ov_data
+Description: Description of ov_data
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/install/lib 
+Requires: 

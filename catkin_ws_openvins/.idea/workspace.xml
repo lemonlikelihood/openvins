@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated />
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="fca9b649-7540-42b2-92e0-26f48d609557" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ProjectId" id="1W6H9TWacF2Edvy9lNTm7snvVZ3" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/open_vins-master/ov_core/src/ThirdParty" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/open_vins-master/ov_core/src/ThirdParty" />
+      <recent name="$PROJECT_DIR$/src/open_vins-master/ov_core/src" />
+      <recent name="$PROJECT_DIR$/src/open_vins-master" />
+      <recent name="$PROJECT_DIR$/annotation" />
+    </key>
+  </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="fca9b649-7540-42b2-92e0-26f48d609557" name="Default Changelist" comment="" />
+      <created>1578462972700</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1578462972700</updated>
+      <workItem from="1578462975328" duration="19290000" />
+      <workItem from="1578556241933" duration="14967000" />
+      <workItem from="1578577032321" duration="22042000" />
+      <workItem from="1578890270696" duration="39875000" />
+      <workItem from="1579063497279" duration="61988000" />
+      <workItem from="1583205059278" duration="12722000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="592" y="200" key="#TODO" timestamp="1579077896677">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="592" y="200" key="#TODO/65.24.1855.1056@65.24.1855.1056" timestamp="1579077896677" />
+    <state x="380" y="193" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1578550103376">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="380" y="193" key="#com.intellij.execution.impl.EditConfigurationsDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1578550103376" />
+    <state x="732" y="439" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1579084715804">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="732" y="439" key="#com.intellij.fileTypes.FileTypeChooser/65.24.1855.1056@65.24.1855.1056" timestamp="1579084715804" />
+    <state x="816" y="372" key="FileChooserDialogImpl" timestamp="1578473752922">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="816" y="372" key="FileChooserDialogImpl/65.24.1855.1056@65.24.1855.1056" timestamp="1578473752922" />
+    <state x="653" y="367" key="com.intellij.ide.util.TipDialog" timestamp="1578890272516">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="653" y="367" key="com.intellij.ide.util.TipDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1578890272516" />
+    <state x="569" y="135" width="1157" height="886" key="dock-window-1" timestamp="1579071752050">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="569" y="135" width="1157" height="886" key="dock-window-1/65.24.1855.1056@65.24.1855.1056" timestamp="1579071752050" />
+    <state x="977" y="294" width="707" height="786" key="find.popup" timestamp="1578921275638">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="977" y="294" width="707" height="786" key="find.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1578921275638" />
+    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup" timestamp="1583221438353">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1583221438353" />
+    <state x="758" y="528" key="vcs.readOnlyHandler.ReadOnlyStatusDialog" timestamp="1578473824969">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="758" y="528" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1578473824969" />
+  </component>
+</project>

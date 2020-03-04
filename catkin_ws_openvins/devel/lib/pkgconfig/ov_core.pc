@@ -1,0 +1,8 @@
+prefix=/home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/devel
+
+Name: ov_core
+Description: Description of ov_core
+Version: 1.0.0
+Cflags: -I/home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/src/open_vins-master/ov_core/src
+Libs: -L/home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/devel/lib -lov_core_lib
+Requires: roscpp rosbag tf std_msgs geometry_msgs sensor_msgs nav_msgs visualization_msgs cv_bridge
