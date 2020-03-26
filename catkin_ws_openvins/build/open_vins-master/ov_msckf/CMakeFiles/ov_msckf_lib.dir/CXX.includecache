@@ -479,6 +479,8 @@ LoopCloser.h
 /home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/src/open_vins-master/ov_msckf/src/mappoint/LoopCloser.h
 iostream
 -
+opencv2/core/core.hpp
+-
 
 /home/SENSETIME/yuanjin/Workspace/catkin_ws_openvins/src/open_vins-master/ov_msckf/src/mappoint/LoopCloser.h
 list

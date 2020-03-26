@@ -75,6 +75,7 @@ namespace ov_core {
         /**
          * @brief Public default constructor
          */
+         // 特征点跟踪基类，输入需要跟踪多少个特点点
         TrackBase() : database(new FeatureDatabase()), num_features(200), currid(0) { }
 
         /**
@@ -82,6 +83,7 @@ namespace ov_core {
          * @param numfeats number of features we want want to track (i.e. track 200 points from frame to frame)
          * @param numaruco the max id of the arucotags, so we ensure that we start our non-auroc features above this value
          */
+
         TrackBase(int numfeats, int numaruco) : database(new FeatureDatabase()), num_features(numfeats) {
             // Our current feature ID should be larger then the number of aruco tags we have
             currid = (size_t) numaruco + 1;
@@ -291,6 +293,7 @@ namespace ov_core {
          * So if we have fisheye for camera_1 is true, we will undistort with the fisheye model.
          * In Kalibr's terms, the non-fisheye is `pinhole-radtan` while the fisheye is the `pinhole-equi` model.
          */
+         // opencv undistort_point 返回归一化平面坐标
         cv::Point2f undistort_point(cv::Point2f pt_in, size_t cam_id) {
             // Determine what camera parameters we should use
             cv::Matx33d camK = this->camera_k_OPENCV.at(cam_id);
@@ -310,6 +313,7 @@ namespace ov_core {
          * Given a uv point, this will undistort it based on the camera matrices.
          * To equate this to Kalibr's models, this is what you would use for `pinhole-radtan`.
          */
+         // 回回的是归化化平面坐标
         cv::Point2f undistort_point_brown(cv::Point2f pt_in, cv::Matx33d &camK, cv::Vec4d &camD) {
             // Convert to opencv format
             cv::Mat mat(1, 2, CV_32F);

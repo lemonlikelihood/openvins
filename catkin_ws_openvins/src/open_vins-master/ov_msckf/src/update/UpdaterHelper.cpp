@@ -286,19 +286,20 @@ void UpdaterHelper::get_feature_jacobian_intrinsics(State* state, const Eigen::V
 }
 
 
-
+// get_feature_jacobian_full 对一个特征点的所有观测求取Hx和Hf   
 void UpdaterHelper::get_feature_jacobian_full(State* state, UpdaterHelperFeature &feature, Eigen::MatrixXd &H_f, Eigen::MatrixXd &H_x, Eigen::VectorXd &res, std::vector<Type*> &x_order) {
 
     // Total number of measurements for this feature
-    int total_meas = 0;
+    int total_meas = 0;                   // 获得所有的观测总量
     for (auto const& pair : feature.timestamps) {
         total_meas += (int)pair.second.size();
     }
 
     // Compute the size of the states involved with this feature
+    // 遍历该点被观测到的所有相机状态，存储他们的IMU到相机的外参数，内参数，相机位姿
     int total_hx = 0;
     std::unordered_map<Type*,size_t> map_hx;
-    for (auto const& pair : feature.timestamps) {
+    for (auto const& pair : feature.timestamps) {      // 左右两个相机，两个pair
 
         // Our extrinsics and intrinsics
         PoseJPL *calibration = state->get_calib_IMUtoCAM(pair.first);
@@ -319,9 +320,10 @@ void UpdaterHelper::get_feature_jacobian_full(State* state, UpdaterHelperFeature
         }
 
         // Loop through all measurements for this specific camera
+        // 对该相机遍历所有的观测
         for (size_t m = 0; m < feature.timestamps[pair.first].size(); m++) {
 
-            // Add this clone if it is not added already
+            // Add this clone if it is not added already  获得在该相机该时刻下的clone，如果该clone 没有加入到状态向量中，就加进去
             PoseJPL *clone_Ci = state->get_clone(feature.timestamps[pair.first].at(m));
             if(map_hx.find(clone_Ci) == map_hx.end()) {
                 map_hx.insert({clone_Ci,total_hx});

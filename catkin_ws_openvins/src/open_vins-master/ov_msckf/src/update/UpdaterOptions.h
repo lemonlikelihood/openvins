@@ -28,6 +28,8 @@ namespace ov_msckf {
     /**
      * @brief Struct which stores general updater options
      */
+
+    // 像素方差和卡方校验的参数
     struct UpdaterOptions {
 
         /// What chi-squared multipler we should apply

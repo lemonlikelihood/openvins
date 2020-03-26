@@ -14,7 +14,9 @@
 #include "ThirdParty/DBoW/DBoW2.h"
 #include "ThirdParty/DVision/DVision.h"
 #define MIN_LOOP_NUM 25
+#define MIN_HAMMING_DIST 30
 
+// #define MIN_HAMMING_DIST 80
 using namespace Eigen;
 using namespace std;
 using namespace DVision;

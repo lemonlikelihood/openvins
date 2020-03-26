@@ -39,6 +39,7 @@ namespace ov_core {
 
     public:
 
+        // 表示位姿，包括旋转和平移两个部分，先旋转后平移，自由度大小为6，际际大小为7
         PoseJPL() : Type(6) {
 
             //Initialize subvariables
@@ -64,6 +65,7 @@ namespace ov_core {
          *
          * @param new_id entry in filter covariance corresponding to this variable
          */
+         // 递归设置在filter中的id，也就是在整个变量中的位置（按由度度排序）
         void set_local_id(int new_id) override {
             _id = new_id;
             _q->set_local_id(new_id);
@@ -75,6 +77,7 @@ namespace ov_core {
          *
          * @param dx Correction vector (orientation then position)   dx  6 * 1  _value 7 * 1 update degree is 6
          */
+         // 位姿的更新，输入参数为6个自由度的增量，前3维表示旋转，后3维表示平移，分别调用JPL和Vec的更新
         void update(const Eigen::VectorXd dx) override {
 
             assert(dx.rows() == _size);
@@ -99,6 +102,7 @@ namespace ov_core {
          * @brief Sets the value of the estimate
          * @param new_value New value we should set
          */
+         // 设置value，以实际的维度为准，将新值的转转和移移别别值值给q和p
         void set_value(const Eigen::MatrixXd new_value) override {
 
             assert(new_value.rows() == 7);
@@ -117,6 +121,8 @@ namespace ov_core {
          * @brief Sets the value of the first estimate
          * @param new_value New value we should set
          */
+
+        // 设置fej，以实际的维度为准，将新值的转转和移移别别值值给q和p
         void set_fej(const Eigen::MatrixXd new_value) override {
 
             assert(new_value.rows() == 7);
@@ -131,6 +137,7 @@ namespace ov_core {
             _fej = new_value;
         }
 
+        // 返回当前变量的一个clone，含含value 和 fej
         Type *clone() override {
             Type *Clone = new PoseJPL();
             Clone->set_value(value());
@@ -146,6 +153,7 @@ namespace ov_core {
          *
          * @param check variable to find
          */
+         // 检查输入变量是否是当前位姿变量或是其中的q或者p
         Type *check_if_same_variable(const Type *check) override {
             if (check == this) {
                 return this;

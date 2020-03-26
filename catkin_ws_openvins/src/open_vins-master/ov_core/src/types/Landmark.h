@@ -40,25 +40,25 @@ namespace ov_core {
 
     public:
 
-        /// Default constructor (feature is always a Vec of size 3)   real degree is 3
+        /// Default constructor (feature is always a Vec of size 3)   real degree is 3  路标点自由度为3
         Landmark() : Vec(3) {}
 
-        /// Feature ID of this landmark (corresponds to frontend id)
+        /// Feature ID of this landmark (corresponds to frontend id)            路点点的id标志符
         size_t _featid;
 
-        /// What camera ID our pose is anchored in!! By default the first measurement is the anchor.
+        /// What camera ID our pose is anchored in!! By default the first measurement is the anchor.   局部相机id
         int _anchor_cam_id = -1;
 
-        /// Timestamp of anchor clone
+        /// Timestamp of anchor clone                                     局部clone 时间戳
         double _anchor_clone_timestamp = -1;
 
         /// Boolean if this landmark has had at least one anchor change
         bool has_had_anchor_change = false;
 
-        /// Boolean if this landmark should be marginalized out
+        /// Boolean if this landmark should be marginalized out            局部坐标是否应该边缘化
         bool should_marg = false;
 
-        /// What feature representation this feature currently has
+        /// What feature representation this feature currently has        哪一种特征点表示方式 5种选1个
         FeatureRepresentation::Representation _feat_representation;
 
         /**
@@ -82,6 +82,7 @@ namespace ov_core {
          * @param getfej Set to true to get the landmark FEJ value
          * @return Position of feature either in global or anchor frame
          */
+         // 返回在当前表示方法下的坐标
         Eigen::Matrix<double,3,1> get_xyz(bool getfej);
 
 
@@ -90,6 +91,7 @@ namespace ov_core {
          * @param p_FinG Position of the feature either in global or anchor frame
          * @param isfej Set to true to set the landmark FEJ value
          */
+         /// 设置在当前坐标表示方法下的坐标
         void set_from_xyz(Eigen::Matrix<double,3,1> p_FinG, bool isfej);
 
 

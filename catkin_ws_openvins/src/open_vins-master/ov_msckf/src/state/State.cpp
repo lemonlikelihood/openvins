@@ -26,7 +26,7 @@ using namespace ov_msckf;
 
 
 // 设置初始状态向量和协方差
-// [ X_I                      td_CAMtoIMU       pose_IMUtoCAM            intrinsics           ]
+// [ X_I                      td_CAMtoIMU       pose_IMUtoCAM            intrinsics           ]  slam_features 自度度为3
 //  q_GtoI p_IinG v bg ba         td            q_ItoC p_IinC      fx fy cx cy k1 k2 k3 k4
 //  16/15                         1/1                7/6                    8/8                = 30
 void State::initialize_variables() {

@@ -35,6 +35,7 @@ namespace ov_core {
      * Each variable is defined by its error state size and its location in the covariance matrix.
      * We additionally require all sub-types to have a update procedure.
      */
+     // 所有类型的父类
     class Type {
 
     public:
@@ -44,6 +45,7 @@ namespace ov_core {
          *
         * @param size_ degrees of freedom of variable (i.e., the size of the error state)
         */
+        // size 实际的变量自由度，不一定和存储维度相符
         Type(int size_) {
             _size = size_;
         }
@@ -55,6 +57,7 @@ namespace ov_core {
          *
         * @param new_id entry in filter covariance corresponding to this variable
         */
+        // 在filter中的位置
         virtual void set_local_id(int new_id) {
             _id = new_id;
         }
@@ -78,11 +81,13 @@ namespace ov_core {
          *
          * @param dx Perturbation used to update the variable through a defined "boxplus" operation
          */
+         // 变量更新
         virtual void update(const Eigen::VectorXd dx) = 0;
 
         /**
          * @brief Access variable's estimate
          */
+        // 量量的实际值
         virtual Eigen::MatrixXd value() const {
             return _value;
         }
@@ -90,6 +95,7 @@ namespace ov_core {
         /**
          * @brief Access variable's first-estimate
          */
+        // 变量的fej值
         virtual Eigen::MatrixXd fej() const {
             return _fej;
         }
@@ -98,6 +104,7 @@ namespace ov_core {
          * @brief Overwrite value of state's estimate
          * @param new_value New value that will overwrite state's value
          */
+         // 给变量赋予新值
         virtual void set_value(const Eigen::MatrixXd new_value) {
             assert(_value.rows()==new_value.rows());
             assert(_value.cols()==new_value.cols());
@@ -108,6 +115,7 @@ namespace ov_core {
          * @brief Overwrite value of first-estimate
          * @param new_value New value that will overwrite state's fej
          */
+         // 给变量赋予新的fej
         virtual void set_fej(const Eigen::MatrixXd new_value) {
             assert(_fej.rows()==new_value.rows());
             assert(_fej.cols()==new_value.cols());
@@ -117,6 +125,7 @@ namespace ov_core {
         /**
         * @brief Create a clone of this variable
         */
+        // 返回当前变量的一份克隆
         virtual Type *clone() = 0;
 
         /**
@@ -126,6 +135,7 @@ namespace ov_core {
          *
          * @param check Type pointer to compare to
          */
+         // 检查某个变量是否包含在当前变量中
         virtual Type *check_if_same_variable(const Type *check) {
             if (check == this) {
                 return this;

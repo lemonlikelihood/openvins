@@ -36,18 +36,19 @@ namespace ov_core {
      * Each feature has a unique ID assigned to it, and should have a set of feature tracks alongside it.
      * See the FeatureDatabase class for details on how we load information into this, and how we delete features.
      */
+     // 特征点的表示方法
     class Feature {
 
     public:
 
-        /// Unique ID of this feature
+        /// Unique ID of this feature      特征点的id
         size_t featid;
 
-        /// If this feature should be deleted
+        /// If this feature should be deleted     特征点是否应该被删除
         bool to_delete;
 
         /// UV coordinates that this feature has been seen from (mapped by camera ID)
-        /// 可能存在多个相机stereo，size_t 表示camera_ID 0 表示左相机，1表示右相机，uvs表示对应相机里能够观测到该特征点的图片序列的图像坐标系坐标，没有去畸变（原始坐标）
+        /// 可能存在多个相机stereo，size_t 表示camera_ID 0 表示左相机，1表示右相机，uvs表示对应相机里能够观测到该特征点的图片序列的图像坐标系坐标，没有去畸变（原始坐标），能够观测到该特征点的集合
         std::unordered_map<size_t, std::vector<Eigen::VectorXf>> uvs;
 
         /// UV normalized coordinates that this feature has been seen from (mapped by camera ID)
@@ -58,16 +59,16 @@ namespace ov_core {
         /// 可能存在多个相机stereo，size_t 表示camera_ID 0 表示左相机，1表示右相机，timestamps表示对应相机里能够观测到该特征点的图片序列时间戳
         std::unordered_map<size_t, std::vector<double>> timestamps;
 
-        /// What camera ID our pose is anchored in!! By default the first measurement is the anchor.
+        /// What camera ID our pose is anchored in!! By default the first measurement is the anchor.  局部帧相机
         int anchor_cam_id = -1;
 
-        /// Timestamp of anchor clone
+        /// Timestamp of anchor clone           局部帧时间戳
         double anchor_clone_timestamp;
 
-        /// Triangulated position of this feature, in the anchor frame
+        /// Triangulated position of this feature, in the anchor frame            局部帧三角化坐标
         Eigen::Vector3d p_FinA;
 
-        /// Triangulated position of this feature, in the global frame
+        /// Triangulated position of this feature, in the global frame            全局标标
         Eigen::Vector3d p_FinG;
 
 

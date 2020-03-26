@@ -25,12 +25,12 @@ using namespace ov_core;
 
 
 
-
+// 去除跟踪时间不包含valid_times的特征点
 void Feature::clean_old_measurements(std::vector<double> valid_times) {
 
 
     // Loop through each of the cameras we have
-    // 对于所有的相机，都需要进行剔除
+    // 对于所有的相机，都需要进行剔除 timestamps 第一个参数是相机id,第二个参数是在该相机下的时间戳，剔除不在有效时间vectorn内的观测
     for(auto const &pair : timestamps) {
 
         // Assert that we have all the parts of a measurement

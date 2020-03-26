@@ -4,6 +4,7 @@
 
 #include "LoopCloser.h"
 #include <iostream>
+#include <opencv2/core/core.hpp>
 
 using namespace ov_msckf;
 
@@ -17,11 +18,11 @@ void LoopCloser::load_vocabulary(std::string voc_path) {
 void LoopCloser::feed_monocular(double timestamp, cv::Mat img, size_t cam_id, TrackBase *trackBase) {
     cur_keyframe = new KeyFrame(timestamp, img, cam_id, trackBase, frame_id);
     cur_keyframe->computeBRIEFPoint();
+    ransac_loop();
     if (frame_id % step == 0) {
         add_keyframe_into_voc(cur_keyframe);
     }
     frame_id++;
-    ransac_loop();
 }
 
 int LoopCloser::detect_loop(KeyFrame *keyframe, int frame_index) {
@@ -31,7 +32,11 @@ int LoopCloser::detect_loop(KeyFrame *keyframe, int frame_index) {
 
     db.query(keyframe->brief_descriptors, ret, 4, frame_index - 50);
     bool find_loop = false;
-    if (ret.size() >= 1 && ret[0].Score > 0.05)
+    std::cout<<"frame_index: "<<frame_index<<"ret_size: "<<ret.size()<<std::endl;
+    for(int i=0;i<ret.size();i++){
+        std::cout<<"ret "<<i <<" frame_id: "<< get_keyframe(ret[i].Id)->frame_id << " Score: "<<ret[i].Score<<std::endl;
+    }
+    if (ret.size() > 1 && ret[0].Score > 0.05)
         for (unsigned int i = 1; i < ret.size(); i++) {
             //if (ret[i].Score > ret[0].Score * 0.3)
             if (ret[i].Score > 0.015) {
@@ -83,15 +88,20 @@ void LoopCloser::add_keyframe_into_voc(KeyFrame *keyframe) {
 
 bool LoopCloser::ransac_loop() {
     int old_keyframe_id = detect_loop(cur_keyframe, frame_id);
-    if(old_keyframe_id==-1)
+    if(old_keyframe_id == -1){
+        std::cout<<"did not find loopcloser at frame:"<<cur_keyframe->frame_id<<std::endl;
         return false;
+    }
 
     KeyFrame *old_keyframe = get_keyframe(old_keyframe_id);
+
+    std::cout<<"old_frame: "<<old_keyframe->frame_id<<std::endl;
 
     std::vector<cv::Point2f> matched_2d_old;
     std::vector<cv::Point2f> matched_2d_cur;
 
-    bool is_find_loop = cur_keyframe->findConnection(old_keyframe,matched_2d_old,matched_2d_cur);
+    bool is_find_loop = false;
+    is_find_loop =  cur_keyframe->findConnection(old_keyframe,matched_2d_old,matched_2d_cur);
     if (is_find_loop) {
         int feature_num = cur_keyframe->keypoints.size();
         cv::Mat compressed_image = cur_keyframe->image.clone();
@@ -108,7 +118,11 @@ bool LoopCloser::ransac_loop() {
                 cv::Point2f(10, 50), CV_FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 255));
         cv::hconcat(loop_result, tmp_image, loop_result);
         for(int i=0;i<matched_2d_cur.size();i++){
-            cv::line(loop_result,matched_2d_cur[i],cv::Point2f(matched_2d_old[i].x+compressed_image.cols,matched_2d_old[i].y),cv::Scalar(-1), 2);
+            cv::RNG rng = cv::RNG(cv::getTickCount());
+            int r = rng.uniform(0,255);
+            int g = rng.uniform(0,255);
+            int b = rng.uniform(0,255);
+            cv::line(loop_result,matched_2d_cur[i],cv::Point2f(matched_2d_old[i].x+compressed_image.cols,matched_2d_old[i].y),cv::Scalar(r,g,b), 2);
         }
         if (DEBUG_IMAGE) {
             cv::imshow("loop_result", loop_result);

@@ -25,8 +25,24 @@
 using namespace ov_core;
 using namespace ov_msckf;
 
+/*
+ * 与MSCKF特征点Update 的区别在于：
+
+1.特征点不需要进行三角化和零空间映射
+
+2.不需要做零空间映射
+
+3.不需要QR矩阵分解压缩矩阵
 
 
+原因是这个函数输入的特征点均是在state->features_SLAM()中已经存在的，而且已经被delayed_init三角化过的特征点(唯一一个会给State加入
+SLAM特征点insert_SLAM_feature的地方)，EKF更新完成之后，会设置feature_vec[f]->to_delete = true（类似于滑窗内marg 的操作），以
+ 便去除滑窗内的跟踪器特征点集合中对应这种slam特征点，而在state->features_SLAM()中仍然保留存在。
+
+
+*/
+// brief Given max track features, this will try to use them to initialize them in the state.
+// 对特征点进行三角化
 void UpdaterSLAM::delayed_init(State *state, std::vector<Feature*>& feature_vec) {
 
     // Return if no features
@@ -147,6 +163,7 @@ void UpdaterSLAM::delayed_init(State *state, std::vector<Feature*>& feature_vec)
         UpdaterHelper::get_feature_jacobian_full(state, feat, H_f, H_x, res, Hx_order);
 
         // Create feature pointer
+        // 新建Landmark
         Landmark* landmark = new Landmark();
         landmark->_featid = feat.featid;
         landmark->_feat_representation = feat.feat_representation;
@@ -165,6 +182,8 @@ void UpdaterSLAM::delayed_init(State *state, std::vector<Feature*>& feature_vec)
         Eigen::MatrixXd R = sigma_pix_sq*Eigen::MatrixXd::Identity(res.rows(), res.rows());
 
         // Try to initialize, delete new pointer if we failed
+        // 这一部分将会加入新的特征点，经过初始化后不仅添加到MSCKF的状态和协方差中，而且加入到SLAM特征点集合。
+        // 初始化新的特征点状态，加入SLAM点的集合中
         double chi2_multipler = ((int)feat.featid < state->options().max_aruco_features)? _options_aruco.chi2_multipler : _options_slam.chi2_multipler;
         if (StateHelper::initialize(state, landmark, Hx_order, H_x, H_f, R, res, chi2_multipler)){
             state->insert_SLAM_feature((*it2)->featid, landmark);
@@ -204,13 +223,14 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
     rT0 =  boost::posix_time::microsec_clock::local_time();
 
     // 0. Get all timestamps our clones are at (and thus valid measurement times)
-    std::vector<double> clonetimes;
+    std::vector<double> clonetimes;             // 获取IMU状态的时间戳
     for(const auto& clone_imu : state->get_clones()) {
         clonetimes.emplace_back(clone_imu.first);
     }
 
 
     // 1. Clean all feature measurements and make sure they all have valid clone times
+    // 去除不在IMU状态的跟踪特征点，只关注IMU状态时间戳对应的那些特征点就足够了
     auto it0 = feature_vec.begin();
     while(it0 != feature_vec.end()) {
 
@@ -258,6 +278,7 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
     auto& features_SLAM = state->features_SLAM();
 
     // 4. Compute linear system for each feature, nullspace project, and reject
+    // 遍历特征点集，取出交集features_SLAM的Landmark
     auto it2 = feature_vec.begin();
     while(it2 != feature_vec.end()) {
 
@@ -289,7 +310,7 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
 
         // Our return values (feature jacobian, state jacobian, residual, and order of state jacobian)
         Eigen::MatrixXd H_f;
-        Eigen::MatrixXd H_x;
+        Eigen::MatrixXd H_x;              // 残差对状态向量的导数，
         Eigen::VectorXd res;
         std::vector<Type*> Hx_order;
 
@@ -303,7 +324,7 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
 
         // Append to our Jacobian order vector
         std::vector<Type*> Hxf_order = Hx_order;
-        Hxf_order.push_back(landmark);
+        Hxf_order.push_back(landmark);                // 除了MSCKF的IMU状态等还有特征点
 
         /// Chi2 distance check
         Eigen::MatrixXd P_marg = StateHelper::get_marginal_covariance(state, Hxf_order);
@@ -336,6 +357,7 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
             ROS_INFO("[SLAM-UP]: accepted aruco tag %d for chi2 thresh (%.3f < %.3f)",(int)feat.featid,chi2,chi2_multipler*chi2_check);
 
         // We are good!!! Append to our large H vector
+        // 合并每个特征点的HX和res
         size_t ct_hx = 0;
         for(const auto &var : Hxf_order) {
 
@@ -379,7 +401,7 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
     Hx_big.conservativeResize(ct_meas,ct_jacob);
     R_big.conservativeResize(ct_meas,ct_meas);
 
-    // 5. With all good SLAM features update the state
+    // 5. With all good SLAM features update the state     EKF更新
     StateHelper::EKFUpdate(state, Hx_order_big, Hx_big, res_big, R_big);
     rT3 =  boost::posix_time::microsec_clock::local_time();
 

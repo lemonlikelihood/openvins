@@ -68,6 +68,7 @@ namespace ov_core {
          * @param remove Set to true if you want to remove the feature from the database (you will need to handle the freeing of memory)
          * @return Either a feature object, or null if it is not in the database.
          */
+         // 按特征点id来查找
         Feature *get_feature(size_t id, bool remove=false) {
             std::unique_lock<std::mutex> lck(mtx);
             if (features_idlookup.find(id) != features_idlookup.end()) {
@@ -93,6 +94,7 @@ namespace ov_core {
          * This will update a given feature based on the passed ID it has.
          * It will create a new feature, if it is an ID that we have not seen before.
          */
+        // 更新特征点坐标（若是新的增加，若是已有则在容器末尾添加）
         void update_feature(size_t id, double timestamp, size_t cam_id,
                             float u, float v, float u_n, float v_n) {
 
@@ -131,7 +133,7 @@ namespace ov_core {
          * All features returned will not have any measurements occurring at a time greater then the specified.
          */
 
-        // 返回跟踪时长小于当前时间戳的track，即该特征点的结束跟踪时间戳小于当前时间戳
+        // 返回跟踪时长小于当前时间戳的track，即该特征点的结束跟踪时间戳小于当前时间戳，返回在timestamp之后已经丢失的特征点
         std::vector<Feature *> features_not_containing_newer(double timestamp, bool remove=false) {
 
             // Our vector of features that do not have measurements after the specified time
@@ -218,7 +220,7 @@ namespace ov_core {
          * This would be used to get all features that occurred at a specific clone/state.
          */
 
-        // 返回track时间包含当前时间戳的track
+        // 返回track时间包含当前时间戳的track，返回在timestamp跟踪的特征点，相当于 = timestamp（用于Marg掉滑窗内最老的MSCKF状态对应时间戳的那些特征点）
         std::vector<Feature *> features_containing(double timestamp, bool remove=false) {
 
             // Our vector of old features
@@ -310,6 +312,7 @@ namespace ov_core {
         std::mutex mtx;
 
         /// Our lookup array that allow use to query based on ID
+        ///
         std::unordered_map<size_t, Feature *> features_idlookup;  /// size_t featid , Feature *
 
 

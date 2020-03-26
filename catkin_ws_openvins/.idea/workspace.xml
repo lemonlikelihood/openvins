@@ -18,6 +18,20 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
+  </component>
   <component name="ProjectId" id="1W6H9TWacF2Edvy9lNTm7snvVZ3" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -27,7 +41,7 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/open_vins-master/ov_core/src/ThirdParty" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -64,7 +78,8 @@
       <workItem from="1578577032321" duration="22042000" />
       <workItem from="1578890270696" duration="39875000" />
       <workItem from="1579063497279" duration="61988000" />
-      <workItem from="1583205059278" duration="12722000" />
+      <workItem from="1583205059278" duration="86075000" />
+      <workItem from="1585224258703" duration="341000" />
     </task>
     <servers />
   </component>
@@ -100,10 +115,10 @@
       <screen x="65" y="24" width="1855" height="1056" />
     </state>
     <state x="977" y="294" width="707" height="786" key="find.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1578921275638" />
-    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup" timestamp="1583221438353">
+    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup" timestamp="1584706062480">
       <screen x="65" y="24" width="1855" height="1056" />
     </state>
-    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1583221438353" />
+    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1584706062480" />
     <state x="758" y="528" key="vcs.readOnlyHandler.ReadOnlyStatusDialog" timestamp="1578473824969">
       <screen x="65" y="24" width="1855" height="1056" />
     </state>

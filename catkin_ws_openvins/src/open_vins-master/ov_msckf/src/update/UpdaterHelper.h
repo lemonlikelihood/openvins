@@ -56,19 +56,19 @@ namespace ov_msckf {
         struct UpdaterHelperFeature {
 
             /// Unique ID of this feature
-            size_t featid;
+            size_t featid;                 // 唯一的特征点id
 
             /// UV coordinates that this feature has been seen from (mapped by camera ID)
-            std::unordered_map<size_t, std::vector<Eigen::VectorXf>> uvs;
+            std::unordered_map<size_t, std::vector<Eigen::VectorXf>> uvs;     // camera_id  观测到该特征点的平面坐标
 
             // UV normalized coordinates that this feature has been seen from (mapped by camera ID)
-            std::unordered_map<size_t, std::vector<Eigen::VectorXf>> uvs_norm;
+            std::unordered_map<size_t, std::vector<Eigen::VectorXf>> uvs_norm;     // camera_id  观测到该特征点的归一化平面坐标
 
             /// Timestamps of each UV measurement (mapped by camera ID)
-            std::unordered_map<size_t, std::vector<double>> timestamps;
+            std::unordered_map<size_t, std::vector<double>> timestamps;    // camera_id 时间戳
 
             /// What representation our feature is in
-            FeatureRepresentation::Representation feat_representation;
+            FeatureRepresentation::Representation feat_representation;    // 特征点的表示形式
 
             /// What camera ID our pose is anchored in!! By default the first measurement is the anchor.
             int anchor_cam_id = -1;

@@ -28,6 +28,7 @@ namespace ov_core {
     /**
      * @brief Class has useful feature representation types
      */
+     // 特征点的表示方式类
     class FeatureRepresentation
     {
 
@@ -36,12 +37,13 @@ namespace ov_core {
         /**
          * @brief What feature representation our state can use
          */
+         // 5种表示方式
         enum Representation {
-            GLOBAL_3D,
-            GLOBAL_FULL_INVERSE_DEPTH,
-            ANCHORED_3D,
-            ANCHORED_FULL_INVERSE_DEPTH,
-            ANCHORED_MSCKF_INVERSE_DEPTH
+            GLOBAL_3D,                    // 全局坐标xyz
+            GLOBAL_FULL_INVERSE_DEPTH,    // 全局极坐标逆深度
+            ANCHORED_3D,                  // 局部坐标xyz
+            ANCHORED_FULL_INVERSE_DEPTH,  // 局部极坐标逆深度
+            ANCHORED_MSCKF_INVERSE_DEPTH  // 局部msckf逆深度
         };
 
 
@@ -50,6 +52,7 @@ namespace ov_core {
          * @param feat_representation Representation we want to check
          * @return True if it is a relative representation
          */
+        // 判断是否是局部坐标系
         static inline bool is_relative_representation(Representation feat_representation) {
             return (feat_representation == Representation::ANCHORED_3D ||
                     feat_representation == Representation::ANCHORED_FULL_INVERSE_DEPTH ||

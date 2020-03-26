@@ -88,10 +88,10 @@ int KeyFrame::HammingDis(const BRIEF::bitset &a, const BRIEF::bitset &b) {
 // 将window_descriptor和descriptors_old里面所有的描述符进行逐个匹配，查找最佳的匹配
 bool KeyFrame::searchInAera(const BRIEF::bitset window_descriptor,
                             const std::vector<BRIEF::bitset> &descriptors_old,
-                            const std::vector<cv::Point2f> &point_2d_uv_old,
-                            const std::vector<cv::Point2f> &point_2d_uv_norm_old,
-                            cv::Point2f &best_match,
-                            cv::Point2f &best_match_norm) {
+                            const std::vector<cv::Point2f> &point_2d_uv_old,        // 已知数组
+                            const std::vector<cv::Point2f> &point_2d_uv_norm_old,   // 已知数组
+                            cv::Point2f &best_match,                                // 存放回环帧中的图像点
+                            cv::Point2f &best_match_norm) {                         // 存放回环帧中归一化平面的点
     cv::Point2f best_pt;
     int bestDist = 128;
     int bestIndex = -1;
@@ -104,7 +104,7 @@ bool KeyFrame::searchInAera(const BRIEF::bitset window_descriptor,
         }
     }
     //printf("best dist %d", bestDist);
-    if (bestIndex != -1 && bestDist < 80) {
+    if (bestIndex != -1 && bestDist < MIN_HAMMING_DIST) {
         best_match = point_2d_uv_old[bestIndex];
         best_match_norm = point_2d_uv_norm_old[bestIndex];
         return true;
@@ -112,12 +112,12 @@ bool KeyFrame::searchInAera(const BRIEF::bitset window_descriptor,
         return false;
 }
 
-void KeyFrame::searchByBRIEFDes(std::vector<cv::Point2f> &matched_2d_old,
-                                std::vector<cv::Point2f> &matched_2d_old_norm,
-                                std::vector<uchar> &status,
-                                const std::vector<BRIEF::bitset> &descriptors_old,
-                                const std::vector<cv::Point2f> &point_2d_uv_old,
-                                const std::vector<cv::Point2f> &point_2d_norm_old){
+void KeyFrame::searchByBRIEFDes(std::vector<cv::Point2f> &matched_2d_old,                 // 存放环环帧中与当前帧匹配的图像点
+                                std::vector<cv::Point2f> &matched_2d_old_norm,            // 存放回环帧中与当前帧匹配的归一化点
+                                std::vector<uchar> &status,                               // 是否成功匹配的flag
+                                const std::vector<BRIEF::bitset> &descriptors_old,        //  已知
+                                const std::vector<cv::Point2f> &point_2d_uv_old,          //
+                                const std::vector<cv::Point2f> &point_2d_norm_old){       //
     for (int i = 0; i < (int) brief_descriptors.size(); i++) {
         cv::Point2f pt(0.f, 0.f);
         cv::Point2f pt_norm(0.f, 0.f);
@@ -154,7 +154,10 @@ bool KeyFrame::findConnection(ov_core::KeyFrame *old_kf,std::vector<cv::Point2f>
 
     status.clear();
 
+    std::cout<<"old point size: "<<matched_2d_cur.size()<<std::endl;
+
     if ((int)matched_2d_cur.size() > MIN_LOOP_NUM){
+
         status.clear();
         // Do RANSAC outlier rejection (note since we normalized the max pixel error is now in the normalized cords)
         std::map<size_t, cv::Matx33d> camera_k_OPENCV = trackFEATS->get_camera_k_OPENCV();
@@ -166,6 +169,7 @@ bool KeyFrame::findConnection(ov_core::KeyFrame *old_kf,std::vector<cv::Point2f>
         reduceVector(matched_2d_old, status);
         reduceVector(matched_2d_cur_norm, status);
         reduceVector(matched_2d_old_norm, status);
+        std::cout<<"after fundamentalMat: "<<matched_2d_cur.size()<<std::endl;
         if((int)matched_2d_cur.size() > MIN_LOOP_NUM){
             return true;
         } else return false;

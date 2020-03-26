@@ -26,7 +26,8 @@ using namespace ov_core;
 
 
 // 直接参照图片三角化逆深度说明
-
+// clonesCAM 一一个参数为相机id,第二个参数为相机pose
+// OpenVINS并没有说直接用双目的匹配初始化特征点3D坐标值，而是把双目看成两个相对关系的单目，然后用更多两两配对的单目（已知位姿）构成的sfm问题来求解特征点的3D坐标。
 double FeatureInitializer::compute_error(std::unordered_map<size_t,std::unordered_map<double,ClonePose>> &clonesCAM,
                                          Feature* feat, double alpha, double beta, double rho) {
 
@@ -48,7 +49,7 @@ double FeatureInitializer::compute_error(std::unordered_map<size_t,std::unordere
             // Get the position of this clone in the global   相对位姿变换
             Eigen::Matrix<double, 3, 3> &R_GtoCi = clonesCAM.at(pair.first).at(feat->timestamps.at(pair.first).at(m)).Rot();
             Eigen::Matrix<double, 3, 1> &p_CiinG = clonesCAM.at(pair.first).at(feat->timestamps.at(pair.first).at(m)).pos();
-            // Convert current position relative to anchor
+            // Convert current position relative to anchor        得到所有观测帧到局部参考帧的位姿变换
             Eigen::Matrix<double,3,3> R_AtoCi;
             R_AtoCi.noalias() = R_GtoCi*R_GtoA.transpose();
             Eigen::Matrix<double,3,1> p_CiinA;

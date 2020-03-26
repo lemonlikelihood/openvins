@@ -24,9 +24,7 @@
 using namespace ov_core;
 using namespace ov_msckf;
 
-
-
-
+// Variable ordering used in the compressed Jacobian
 void StateHelper::EKFUpdate(State *state, const std::vector<Type *> &H_order, const Eigen::MatrixXd &H,
                             const Eigen::VectorXd &res, const Eigen::MatrixXd &R) {
 
@@ -38,6 +36,7 @@ void StateHelper::EKFUpdate(State *state, const std::vector<Type *> &H_order, co
     Eigen::MatrixXd M_a = Eigen::MatrixXd::Zero(state->n_vars(), res.rows());
 
     // Get the location in small jacobian for each measuring variable
+    // 存储所有变量的id
     int current_it = 0;
     std::vector<int> H_id;
     for (Type *meas_var: H_order) {
@@ -50,6 +49,7 @@ void StateHelper::EKFUpdate(State *state, const std::vector<Type *> &H_order, co
     //==========================================================
     //==========================================================
     // For each active variable find its M = P*H^T
+    // 计算得到 For each active variable find its M = P*H^T
     for (Type *var: state->variables()) {
         // Sum up effect of each subjacobian = K_i= \sum_m (P_im Hm^T)
         Eigen::MatrixXd M_i = Eigen::MatrixXd::Zero(var->size(), res.rows());
@@ -64,6 +64,8 @@ void StateHelper::EKFUpdate(State *state, const std::vector<Type *> &H_order, co
     //==========================================================
     //==========================================================
     // Get covariance of the involved terms
+
+    // 求解S 中间变量
     Eigen::MatrixXd P_small = StateHelper::get_marginal_covariance(state, H_order);
 
     // Residual covariance S = H*Cov*H' + R
@@ -73,18 +75,20 @@ void StateHelper::EKFUpdate(State *state, const std::vector<Type *> &H_order, co
     //Eigen::MatrixXd S = H * P_small * H.transpose() + R;
 
     // Invert our S (should we use a more stable method here??)
+    // 求解增益K
     Eigen::MatrixXd Sinv = Eigen::MatrixXd::Identity(R.rows(), R.rows());
     S.selfadjointView<Eigen::Upper>().llt().solveInPlace(Sinv);
     Eigen::MatrixXd K = M_a * Sinv.selfadjointView<Eigen::Upper>();
     //Eigen::MatrixXd K = M_a * S.inverse();
 
-    // Update Covariance
+    // Update Covariance   更新协方差
     Cov.triangularView<Eigen::Upper>() -= K * M_a.transpose();
     Cov = Cov.selfadjointView<Eigen::Upper>();
     //Cov -= K * M_a.transpose();
     //Cov = 0.5*(Cov+Cov.transpose());
 
     // We should check if we are not positive semi-definitate (i.e. negative diagionals is not s.p.d)
+    // 检查协方差对角线的半正定性
     Eigen::VectorXd diags = Cov.diagonal();
     for(int i=0; i<diags.rows(); i++) {
         assert(diags(i)>=0.0);
@@ -92,21 +96,24 @@ void StateHelper::EKFUpdate(State *state, const std::vector<Type *> &H_order, co
 
     // Calculate our delta and pass it to update all our state variables
     //cout << "dx = " << endl << (K*res).transpose() << endl;
+
+    // 更新VIO状态的各个分量 dtax = K * res
     state->update(K * res);
 
 }
 
 
-
+// 从大的协方差矩阵上拷贝一部分子协方差块
 Eigen::MatrixXd StateHelper::get_marginal_covariance(State *state, const std::vector<Type *> &small_variables) {
 
     // Calculate the marginal covariance size we need to make our matrix
+    // 统计参数small_variables 子状态量的大小
     int cov_size = 0;
     for (size_t i = 0; i < small_variables.size(); i++) {
         cov_size += small_variables[i]->size();
     }
 
-    // Construct our return covariance
+    // Construct our return covariance 构造返回协方差的大小
     Eigen::MatrixXd Small_cov = Eigen::MatrixXd::Zero(cov_size, cov_size);
 
     // For each variable, lets copy over all other variable cross terms
@@ -129,10 +136,11 @@ Eigen::MatrixXd StateHelper::get_marginal_covariance(State *state, const std::ve
 
 
 
-
+// marg 去除SLAM点landmark  , 这个函数可以marg掉所有一阶子变量
 void StateHelper::marginalize(State *state, Type *marg) {
 
     // Check if the current state has the element we want to marginalize
+    // 确认状态中是否有slam特征点landmark
     if (std::find(state->variables().begin(), state->variables().end(), marg) == state->variables().end()) {
         std::cerr << "CovManager::marginalize() - Called on variable that is not in the state" << std::endl;
         std::cerr << "CovManager::marginalize() - Marginalization, does NOT work on sub-variables yet..." << std::endl;
@@ -152,8 +160,10 @@ void StateHelper::marginalize(State *state, Type *marg) {
     //
     // i.e. x_1 goes from 0 to marg_id, x_2 goes from marg_id+marg_size to Cov.rows() in the original covariance
 
+    // 直接在协方差矩阵中去除slam特征点对应的协方差块
     int marg_size = marg->size();
     int marg_id = marg->id();
+
 
     Eigen::MatrixXd Cov_new(state->n_vars() - marg_size, state->n_vars() - marg_size);
 
@@ -179,6 +189,7 @@ void StateHelper::marginalize(State *state, Type *marg) {
 
     // Now we keep the remaining variables and update their ordering
     // Note: DOES NOT SUPPORT MARGINALIZING SUBVARIABLES YET!!!!!!!
+    // 去除VIO状态中的被marg的量，重新调整，从状态变量中删除被margin掉的变量
     std::vector<Type *> remaining_variables;
     for (size_t i = 0; i < state->variables().size(); i++) {
         //Only keep non-marginal states
@@ -199,11 +210,12 @@ void StateHelper::marginalize(State *state, Type *marg) {
 
 }
 
+// clone 增广矩阵函数
 // 将状态变量中Type类型的变量复制一份放到放在状态变量的尾部并同时维护协方差矩阵
 Type* StateHelper::clone(State *state, Type *variable_to_clone) {
 
     //Get total size of new cloned variables, and the old covariance size
-    int total_size = variable_to_clone->size();               // 新变量的总长度
+    int total_size = variable_to_clone->size();               // 新变量的长度
     int old_size = (int) state->n_vars();                     // 原来变量的总长度
     int new_loc = (int) state->n_vars();                      // 新变量的位置
 
@@ -218,6 +230,7 @@ Type* StateHelper::clone(State *state, Type *variable_to_clone) {
     for (size_t k = 0; k < state->variables().size(); k++) {                      // 从原来的状态向量中找到需要克隆的状态变量
 
         // Skip this if it is not the same
+        // 相同的IMU的协方差拷贝到新增的相机状态的地方
         Type *type_check = state->variables(k)->check_if_same_variable(variable_to_clone); // 遍历所有的状态变量，找到相同的状态变量，type_check已经指到了当前需要克隆的状态变量
         if (type_check == nullptr)
             continue;
@@ -235,7 +248,7 @@ Type* StateHelper::clone(State *state, Type *variable_to_clone) {
         new_clone->set_local_id(new_loc);                                       // 设置在协方差矩阵中新的id
 
         // Add to variable list
-        state->insert_variable(new_clone);                                      // 将新的 clone 插入到状态变量中
+        state->insert_variable(new_clone);                                      // 将新的 clone 插入到状态变量尾部
         break;
 
     }
@@ -253,7 +266,7 @@ Type* StateHelper::clone(State *state, Type *variable_to_clone) {
 
 
 
-
+// Initializes new variable into covariance.
 bool StateHelper::initialize(State *state, Type *new_variable, const std::vector<Type *> &H_order, Eigen::MatrixXd &H_R,
                              Eigen::MatrixXd &H_L, Eigen::MatrixXd &R, Eigen::VectorXd &res, double chi_2_mult) {
 
@@ -264,6 +277,7 @@ bool StateHelper::initialize(State *state, Type *new_variable, const std::vector
         std::exit(EXIT_FAILURE);
     }
 
+    // 检查对角线一致性和非对角为零
     // Check that we have isotropic noise (i.e. is diagonal and all the same value)
     // TODO: can we simplify this so it doesn't take as much time?
     assert(R.rows()==R.cols());
@@ -274,7 +288,7 @@ bool StateHelper::initialize(State *state, Type *new_variable, const std::vector
                 std::cerr << "CovManager::initialize() - Your noise is not isotropic!" << std::endl;
                 std::cerr << "CovManager::initialize() - Found a value of " << R(r,c) << " vs " << R(0,0)  << " at row " << r << " column " << c << std::endl;
                 std::exit(EXIT_FAILURE);
-            } else if(r!=c && R(r,c) != 0.0) {
+            } else if(r!=c && R(r,c) != 0.0) {         //  //非对角线为零
                 std::cerr << "CovManager::initialize() - Your noise is not diagonal!" << std::endl;
                 std::cerr << "CovManager::initialize() - Found a value of " << R(r,c) << " at row " << r << " column " << c << std::endl;
                 std::exit(EXIT_FAILURE);
@@ -289,6 +303,7 @@ bool StateHelper::initialize(State *state, Type *new_variable, const std::vector
     size_t new_var_size = new_variable->size();
     assert((int)new_var_size == H_L.cols());
 
+    // QR 分解
     Eigen::JacobiRotation<double> tempHo_GR;
     for (int n = 0; n < H_L.cols(); ++n) {
         for (int m = (int) H_L.rows() - 1; m > n; m--) {
@@ -305,12 +320,13 @@ bool StateHelper::initialize(State *state, Type *new_variable, const std::vector
 
     // Separate into initializing and updating portions
     // 1. Invertible initializing system
+    //  将HL，HX和res 分成初始化和零空间映射两个部分  1. Invertible initializing system 如上图的r1，Hx1，Hf1和n1 部分
     Eigen::MatrixXd Hxinit = H_R.block(0, 0, new_var_size, H_R.cols());
     Eigen::MatrixXd H_finit = H_L.block(0, 0, new_var_size, new_var_size);
     Eigen::VectorXd resinit = res.block(0, 0, new_var_size, 1);
     Eigen::MatrixXd Rinit = R.block(0, 0, new_var_size, new_var_size);
 
-    // 2. Nullspace projected updating system
+    // 2. Nullspace projected updating system  Nullspace projected updating system 如上图的r2，Hx2和n2部分
     Eigen::MatrixXd Hup = H_R.block(new_var_size, 0, H_R.rows() - new_var_size, H_R.cols());
     Eigen::VectorXd resup = res.block(new_var_size, 0, res.rows() - new_var_size, 1);
     Eigen::MatrixXd Rup = R.block(new_var_size, new_var_size, R.rows() - new_var_size, R.rows() - new_var_size);
@@ -318,7 +334,7 @@ bool StateHelper::initialize(State *state, Type *new_variable, const std::vector
     //==========================================================
     //==========================================================
 
-    // Do mahalanobis distance testing
+    // Do mahalanobis distance testing mahalanobis distance 卡方检验HX 和res 构成的方程是否病态
     Eigen::MatrixXd P_up = get_marginal_covariance(state, H_order);
     assert(Rup.rows() == Hup.rows());
     assert(Hup.cols() == P_up.cols());
@@ -334,10 +350,10 @@ bool StateHelper::initialize(State *state, Type *new_variable, const std::vector
 
     //==========================================================
     //==========================================================
-    // Finally, initialize it in our state
+    // Finally, initialize it in our state  计算初始化部分特征点f 的坐标和和协方差矫正
     StateHelper::initialize_invertible(state, new_variable, H_order, Hxinit, H_finit, Rinit, resinit);
 
-    // Update with updating portion
+    // Update with updating portion  空间映射部分EKF 更新
     if (Hup.rows() > 0) {
         StateHelper::EKFUpdate(state, H_order, Hup, resup, Rup);
     }
@@ -345,7 +361,7 @@ bool StateHelper::initialize(State *state, Type *new_variable, const std::vector
 
 }
 
-
+// initialize_invertible，在MSCKF状态中添加新特征点的状态和协方差
 void StateHelper::initialize_invertible(State *state, Type *new_variable, const std::vector<Type *> &H_order, const Eigen::MatrixXd &H_R,
                                         const Eigen::MatrixXd &H_L, const Eigen::MatrixXd &R, const Eigen::VectorXd &res) {
 
@@ -358,6 +374,7 @@ void StateHelper::initialize_invertible(State *state, Type *new_variable, const 
 
     // Check that we have isotropic noise (i.e. is diagonal and all the same value)
     // TODO: can we simplify this so it doesn't take as much time?
+    // 检查对角线一致性和非对角为零
     assert(R.rows()==R.cols());
     assert(R.rows()>0);
     for(int r=0; r<R.rows(); r++) {
@@ -430,9 +447,9 @@ void StateHelper::initialize_invertible(State *state, Type *new_variable, const 
 
     // Update the variable that will be initialized (invertible systems can only update the new variable).
     // However this update should be almost zero if we already used a conditional Gauss-Newton to solve for the initial estimate
-    new_variable->update(H_Linv * res);
+    new_variable->update(H_Linv * res);  // 更新协方差
 
-    // Now collect results, and add it to the state variables
+    // Now collect results, and add it to the state variables    在state状态结尾加入新特征点的ID和状态
     new_variable->set_local_id((int)(state->n_vars()-new_variable->size()));
     state->insert_variable(new_variable);
     //std::cout << new_variable->id() <<  " init dx = " << (H_Linv * res).transpose() << std::endl;
@@ -441,7 +458,7 @@ void StateHelper::initialize_invertible(State *state, Type *new_variable, const 
 
 
 
-
+// augment_clone 状态增广和协方差时间矫正
 void StateHelper::augment_clone(State *state, Eigen::Matrix<double, 3, 1> last_w) {
 
     // Get our state and covariance
@@ -461,12 +478,13 @@ void StateHelper::augment_clone(State *state, Eigen::Matrix<double, 3, 1> last_w
         exit(EXIT_FAILURE);
     }
 
-    // Append the new clone to our clone vector
+    // Append the new clone to our clone vector                                           // 插入imu的状态 到state的变量_clones_IMU
     state->insert_clone(state->timestamp(), pose);                                        // 将新的IMU位姿估计为当前Image的时间戳和位姿，插入到clone状态map中
 
     // If we are doing time calibration, then our clones are a function of the time offset
     // Logic is based on Mingyang Li and Anastasios I. Mourikis paper:
     // http://journals.sagepub.com/doi/pdf/10.1177/0278364913515286
+    // 根据时间偏移量对IMU 状态进行校正
     if (state->options().do_calib_camera_timeoffset) {                                    // 如果考虑时间同步问题，需要往前传播一下，依据时间同步计算协方差
         // Jacobian to augment by
         Eigen::Matrix<double, 6, 1> dnc_dt = Eigen::MatrixXd::Zero(6, 1);

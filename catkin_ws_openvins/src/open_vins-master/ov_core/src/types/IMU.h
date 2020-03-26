@@ -40,8 +40,8 @@ namespace ov_core {
 
     public:
 
-        IMU() : Type(15) {                        // degree is 15
-            _pose = new PoseJPL();
+        IMU() : Type(15) {                        // degree is 15  15 个自由度 q,p,v,bg,ba
+            _pose = new PoseJPL();                // 先 q 后 p
             _v = new Vec(3);
             _bg = new Vec(3);
             _ba = new Vec(3);
@@ -68,6 +68,8 @@ namespace ov_core {
          *
          * @param new_id entry in filter covariance corresponding to this variable
          */
+
+        // 按位置设置id
         void set_local_id(int new_id) override {
             _id = new_id;
             _pose->set_local_id(new_id);
@@ -82,6 +84,7 @@ namespace ov_core {
          *
         * @param dx 15 DOF vector encoding update using the following order (q, p, v, bg, ba)
         */
+        // 按误差增量更新IMU Pose dx 15*1
         void update(const Eigen::VectorXd dx) override {
 
             assert(dx.rows() == _size);
@@ -108,6 +111,7 @@ namespace ov_core {
          * @brief Sets the value of the estimate
          * @param new_value New value we should set
          */
+         // 设置新的变量值 16*1
         void set_value(const Eigen::MatrixXd new_value) override {
 
             assert(new_value.rows() == 16);
@@ -125,6 +129,7 @@ namespace ov_core {
          * @brief Sets the value of the first estimate
          * @param new_value New value we should set
          */
+        // 设置新的fej值 16*1
         void set_fej(const Eigen::MatrixXd new_value) override {
 
             assert(new_value.rows() == 16);
@@ -138,6 +143,7 @@ namespace ov_core {
             _fej = new_value;
         }
 
+        // 返回克隆值，value和fej
         Type *clone() override {
             Type *Clone = new IMU();
             Clone->set_value(value());
@@ -172,22 +178,22 @@ namespace ov_core {
             }
         }
 
-        /// Rotation access
+        /// Rotation access    返回旋转量旋转矩阵
         Eigen::Matrix<double, 3, 3> Rot() const {
             return _pose->Rot();
         }
 
-        /// FEJ Rotation access
+        /// FEJ Rotation access         返回旋转量旋转矩阵的fej
         Eigen::Matrix<double, 3, 3> Rot_fej() const {
             return _pose->Rot_fej();
         }
 
-        /// Rotation access quaternion
+        /// Rotation access quaternion         返回旋转量四元数
         Eigen::Matrix<double, 4, 1> quat() const {
             return _pose->quat();
         }
 
-        /// FEJ Rotation access quaternion
+        /// FEJ Rotation access quaternion       返回旋转量四元数的fej
         Eigen::Matrix<double, 4, 1> quat_fej() const {
             return _pose->quat_fej();
         }
@@ -266,7 +272,7 @@ namespace ov_core {
     protected:
 
         /// Pose subvariable
-        PoseJPL *_pose;
+        PoseJPL *_pose;        // q 和 p
 
         /// Velocity subvariable
         Vec *_v;

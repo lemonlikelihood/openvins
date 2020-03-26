@@ -65,6 +65,8 @@ namespace ov_msckf {
          * @param options_aruco Updater options (include measurement noise value) for ARUCO features
          * @param feat_init_options Feature initializer options
          */
+
+        // 像素方差和卡方检验的参数
         UpdaterSLAM(UpdaterOptions &options_slam, UpdaterOptions &options_aruco, FeatureInitializerOptions &feat_init_options)
                     : _options_slam(options_slam), _options_aruco(options_aruco) {
 

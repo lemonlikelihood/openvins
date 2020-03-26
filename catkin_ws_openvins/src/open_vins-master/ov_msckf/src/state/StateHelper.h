@@ -167,13 +167,15 @@ namespace ov_msckf {
          *
          * @param state Pointer to state
          */
+
+        // marginalize_old_clone，EKF更新之后需要去除滑窗内多余的状态
         static void marginalize_old_clone(State *state) {
             if ((int) state->n_clones() > state->options().max_clone_size) {
-                double marginal_time = state->margtimestep();
-                StateHelper::marginalize(state, state->get_clone(marginal_time));
+                double marginal_time = state->margtimestep();         // 滑窗内时间戳最老的那一帧
+                StateHelper::marginalize(state, state->get_clone(marginal_time));   // 边缘化状态协方差
                 // Note that the marginalizer should have already deleted the clone
                 // Thus we just need to remove the pointer to it from our state
-                state->erase_clone(marginal_time);
+                state->erase_clone(marginal_time);  // 在状态向量中删除
             }
         }
 
@@ -181,13 +183,14 @@ namespace ov_msckf {
          * @brief Marginalize bad SLAM features
          * @param state Pointer to state
          */
+        //  marginalize_slam，去除marg被标记过的点
         static void marginalize_slam(State* state) {
             // Remove SLAM features that have their marginalization flag set
             // We also check that we do not remove any aruoctag landmarks
             auto it0 = state->features_SLAM().begin();
-            while(it0 != state->features_SLAM().end()) {
+            while(it0 != state->features_SLAM().end()) {              //检查一个slam_feature是否应该被marg掉，从状态向量中删除
                 if((*it0).second->should_marg && (int)(*it0).first > state->options().max_aruco_features) {
-                    StateHelper::marginalize(state, (*it0).second);
+                    StateHelper::marginalize(state, (*it0).second);    //第二个参数是landmark
                     it0 = state->features_SLAM().erase(it0);
                 } else {
                     it0++;

@@ -124,7 +124,7 @@ namespace ov_msckf {
         }
 
         /// Get size of covariance
-        size_t n_vars() {                                                  // 返回所有状态的协方差矩阵的维度
+        size_t n_vars() {                                                  // 返回所有状态的协方差矩阵的维度，当前状态向量中包含的所有参数的维度
             return _Cov.rows();
         }
 
@@ -197,7 +197,7 @@ namespace ov_msckf {
         std::unordered_map<double, PoseJPL*> _clones_IMU;             // 滑动窗口里每一个Image的 IMU poses, double 时间戳，图片对应的时间戳
 
         /// Our current set of SLAM features (3d positions)
-        std::unordered_map<size_t, Landmark*> _features_SLAM;         // 当前的slam feature , size_t key 是 featID
+        std::unordered_map<size_t, Landmark*> _features_SLAM;         // 当前的slam_feature , size_t key 是 featID，自由度为3
 
         /// Time offset base IMU to camera (t_imu = t_cam + t_off)
         Vec *_calib_dt_CAMtoIMU;                                      // 当前滑动窗口里的每一个Image 的时间同步误差

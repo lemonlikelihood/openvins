@@ -38,10 +38,12 @@ namespace ov_core {
      * - http://mars.cs.umn.edu/tr/reports/Trawny05b.pdf
      * - ftp://naif.jpl.nasa.gov/pub/naif/misc/Quaternion_White_Paper/Quaternions_White_Paper.pdf
      */
+
+    // JPL 四元数类型的变量参数，表示旋转，自由度为3，实际变量长度为4
     class JPLQuat : public Type {
 
     public:
-
+        // JPL 四元数，实际内部存储为4*1的矩阵，虚部为1
         JPLQuat() : Type(3) {
             Eigen::Matrix<double, 4, 1> q0;
             q0.setZero();
@@ -62,6 +64,7 @@ namespace ov_core {
          *
          * @param dx Axis-angle representation of the perturbing quaternion  // 3 degree perturbing quaternion Axis-angle left multiply
          */
+        // JPL 四元数的增量更新，采用增量的左乘策略，增量dx表示角度自由度的增量
         void update(const Eigen::VectorXd dx) override {
 
             assert(dx.rows() == _size);
@@ -80,6 +83,7 @@ namespace ov_core {
         * @brief Sets the value of the estimate and recomputes the internal rotation matrix
         * @param new_value New value for the quaternion estimate
         */
+        // 设置四元数的值，同时也会设置旋转矩阵的值，四元数和旋转矩阵直接关联
         void set_value(const Eigen::MatrixXd new_value) override {
 
             assert(new_value.rows() == 4);
@@ -91,6 +95,7 @@ namespace ov_core {
             _R = quat_2_Rot(new_value);
         }
 
+        // 返回JPL四元数的一个克隆，包括四元数的值和fej的值
         Type *clone() override {
             Type *Clone = new JPLQuat();
             Clone->set_value(value());
@@ -102,6 +107,7 @@ namespace ov_core {
         * @brief Sets the fej value and recomputes the fej rotation matrix
         * @param new_value New value for the quaternion estimate
         */
+        // 设置四元式的fej,实维维度 4*1
         void set_fej(const Eigen::MatrixXd new_value) override {
 
             assert(new_value.rows() == 4);
@@ -113,12 +119,12 @@ namespace ov_core {
             _Rfej = quat_2_Rot(new_value);
         }
 
-        /// Rotation access
+        /// Rotation access  获取JPL四数数的旋转矩阵
         Eigen::Matrix<double, 3, 3> Rot() const {
             return _R;
         }
 
-        /// FEJ Rotation access
+        /// FEJ Rotation access      得得JPL四元数fej的旋转矩阵
         Eigen::Matrix<double, 3, 3> Rot_fej() const {
             return _Rfej;
         }

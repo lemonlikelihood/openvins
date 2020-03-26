@@ -30,6 +30,8 @@ namespace ov_core {
     /**
      * @brief Derived Type class that implements vector variables
      */
+
+    // vector 类型的变量
     class Vec : public Type {
 
     public:
@@ -38,6 +40,7 @@ namespace ov_core {
          * @brief Default constructor for Vec
          * @param dim Size of the vector (will be same as error state)
          */
+         // Vec 的默认构造函数，输入为vec 的维度，利用vectorXd来构造
         Vec(int dim) : Type(dim) {
             _value = Eigen::VectorXd::Zero(dim);
             _fej = Eigen::VectorXd::Zero(dim);
@@ -49,6 +52,7 @@ namespace ov_core {
          * @brief Implements the update operation through standard vector addition
          * @param dx Additive error state correction
          */
+        // 增量更新，直在在vec变量上进行增量增加
         void update(const Eigen::VectorXd dx) override {
             assert(dx.rows() == _size);
             set_value(_value + dx);
@@ -57,6 +61,7 @@ namespace ov_core {
         /**
          * @brief Performs all the cloning
          */
+         // vector类型的clone，新建一个vector，将value和fej的值制制过去并返回
         Type *clone() override {
             Type *Clone = new Vec(_size);
             Clone->set_value(value());

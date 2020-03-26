@@ -28,6 +28,7 @@ namespace ov_core {
     /**
      * @brief Struct which stores all our feature initializer options
      */
+     // 特征点初始化选项
     struct FeatureInitializerOptions {
 
         /// Max runs for Gauss Newton
@@ -55,7 +56,7 @@ namespace ov_core {
         double max_dist = 40;                  // 三角化解出3D点在当前帧坐标系中的坐标，z最远距离40m，大于40m认为三角化结果不准确
 
         /// Max baseline ratio to accept triangulated features
-        double max_baseline = 40;
+        double max_baseline = 40;              // 三角化可以接受的最大基线
 
         /// Max condition number of linear triangulation matrix accept triangulated features
         double max_cond_number = 1000;        // SVD分解时的条件数，判断最大的特征值和最小的特征值之间的比率，来决定求解是否病态

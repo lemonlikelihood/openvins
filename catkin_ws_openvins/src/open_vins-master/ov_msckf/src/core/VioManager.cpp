@@ -280,10 +280,13 @@ VioManager::VioManager(ros::NodeHandle &nh) {
     UpdaterOptions msckf_options;
     UpdaterOptions slam_options;
     UpdaterOptions aruco_options;
+
     nh.param<double>("up_msckf_sigma_px", msckf_options.sigma_pix, 1);
     nh.param<int>("up_msckf_chi2_multipler", msckf_options.chi2_multipler, 5);
+
     nh.param<double>("up_slam_sigma_px", slam_options.sigma_pix, 1);
     nh.param<int>("up_slam_chi2_multipler", slam_options.chi2_multipler, 5);
+
     nh.param<double>("up_aruco_sigma_px", aruco_options.sigma_pix, 1);
     nh.param<int>("up_aruco_chi2_multipler", aruco_options.chi2_multipler, 5);
 
@@ -373,16 +376,16 @@ void VioManager::feed_measurement_monocular(double timestamp, cv::Mat& img0, siz
     }
     rT2 =  boost::posix_time::microsec_clock::local_time();
 
-    // If we do not have VIO initialization, then try to initialize
+    // If we do not have VIO initialization, then try to initialize        // 静止初始化
     // TODO: Or if we are trying to reset the system, then do that here!
     if(!is_initialized_vio) {
         is_initialized_vio = try_to_initialize();                     // 判断是否完成初始化，如果没有，先进行初始化，初始化完成得到初始状态向量和协方差，以及对应的时间戳
         if(!is_initialized_vio) return;                               // 如果没有完成初始化，Image处理函数不继续执行，也就是不执行Image propagation 和 update
     }
 
-    loopCloser->feed_monocular(timestamp, img0, cam_id, trackFEATS);
+    loopCloser->feed_monocular(timestamp, img0, cam_id, trackFEATS);      // 进入回环检测
     // Call on our propagate and update function
-    do_feature_propagate_update(timestamp);                           // 当前Image的时间戳
+    do_feature_propagate_update(timestamp);                           // 当前Image的时间戳   先预积分IMU状态，然后根据跟踪丢失的特征点用于更新VIO系统
 
 
 }
@@ -510,7 +513,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     //===================================================================================
 
     // Return if the camera measurement is out of order
-    if(state->timestamp() >= timestamp) {                         // image 时间戳需要大于 最后一个 imu 的时间戳（起始时间的时间戳）
+    if(state->timestamp() >= timestamp) {                         // image 时间戳需要大于 最后一个 imu 的时间戳（初化化起始时间的时间戳）
         ROS_WARN("image received out of order (prop dt = %3f)",(timestamp-state->timestamp()));
         return;
     }
@@ -523,11 +526,12 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // Propagate the state forward to the current update time
     // Also augment it with a new clone!
     propagator->propagate_and_clone(state, timestamp);             // clone 的 IMU状态向量向前传播，并加入当前的Image clone状态（增广）
-    rT3 =  boost::posix_time::microsec_clock::local_time();
+    rT3 =  boost::posix_time::microsec_clock::local_time();        // IMU运动学方程，预测IMU状态和IMU协方差预测
 
     // If we have not reached max clones, we should just return...
     // This isn't super ideal, but it keeps the logic after this easier...
     // We can start processing things when we have at least 5 clones since we can start triangulating things...
+    // 至少5个图像对完成IMU预测和协方差更新之后，才进行下一步三角化操作
     if((int)state->n_clones() < std::min(state->options().max_clone_size,5)) {                // 判断clone的状态是否大于5
         ROS_INFO("waiting for enough clone states (%d of %d) ....",(int)state->n_clones(),std::min(state->options().max_clone_size,5));
         return;
@@ -546,12 +550,19 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
 
     // Now, lets get all features that should be used for an update that are lost in the newest frame
-    std::vector<Feature*> feats_lost, feats_marg, feats_slam;
+    // 避免MSCKF状态中维护的特征点过多，统计丢失的feats_lost 和老的marg候选点feats_marg
+    std::vector<Feature*> feats_lost, feats_marg, feats_slam;         // 跟丢的点，需要marg的点，以及slam点
+
+    // 返回的feats_lost包含了到当前state时刻往前已经丢失的特征点ID 和坐标信息。
     feats_lost = trackFEATS->get_feature_database()->features_not_containing_newer(state->timestamp());          // 获得到当前时间已丢失的特征点
 
-    // Don't need to get the oldest features untill we reach our max number of clones                            // 如果没有达到最大窗口数量的clone不需要更新
+    // 若MSCKF状态的大小超过上限，则需要去除老的状态。
+    // Don't need to get the oldest features untill we reach our max number of clones                            // 如果没有达到最大窗口数量的clone不需要更新 euroc 设置为11
     if((int)state->n_clones() > state->options().max_clone_size) {
         feats_marg = trackFEATS->get_feature_database()->features_containing(state->margtimestep());             // state->margtimestep()最早的Image所对应的时间戳 //features_containing返回跟踪时间包含当前时间戳的特征点
+        //当MSCKF状态的个数超过了最大限制，则需要marg 掉一些多余点，所以这个函数返回的包含了某个时间戳（即为state->margtimestep()定义的滑窗内最老一帧，待marg的时间戳）包含的特征点坐标信息，
+        // 也就是从当前窗口内第一帧到现在一直跟踪到的特征点，这些点需要进行marg
+
         if(trackARUCO != nullptr && timestamp-startup_time >= dt_statupdelay) {
             feats_slam = trackARUCO->get_feature_database()->features_containing(state->margtimestep());
         }
@@ -559,6 +570,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
     // We also need to make sure that the max tracks does not contain any lost features
     // This could happen if the feature was lost in the last frame, but has a measurement at the marg timestep
+    // 在feats_lost找和剔除重复出现在marg内的点，如果一个点既是跟丢的点也是需要margin的点，将这个点从lost列表中删除，放入到margin中，也就是说跟丢的点lost中不会有从第一帧跟踪到的点
     auto it1 = feats_lost.begin();
     while(it1 != feats_lost.end()) {
         if(std::find(feats_marg.begin(),feats_marg.end(),(*it1)) != feats_marg.end()) {
@@ -570,6 +582,8 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     }
 
     // Find tracks that have reached max length, these can be made into SLAM features
+    // 在feats_marg中找和剔除跟踪时间较长,认为是长期的特征点feats_maxtracks（从marg 候选点中去除，超过max_clone_size=11即可）,
+    // 在需要margin的点中如果跟踪长度大于max_clone，就认为是一个feats_maxtracks的参考点，feature_marg中还有大部分点没有达到最大跟踪长度留在feature_marg中，需要进行MSCKF更新
     std::vector<Feature*> feats_maxtracks;
     auto it2 = feats_marg.begin();
     while(it2 != feats_marg.end()) {
@@ -590,14 +604,14 @@ void VioManager::do_feature_propagate_update(double timestamp) {
         }
     }
 
-    // Count how many aruco tags we have in our state
+    // Count how many aruco tags we have in our state 统计目前有多个个aruco tags
     int curr_aruco_tags = 0;
     auto it0 = state->features_SLAM().begin();
     while(it0 != state->features_SLAM().end()) {
         if ((int) (*it0).second->_featid <= state->options().max_aruco_features) curr_aruco_tags++;
         it0++;
     }
-
+    // max_aruco_features 默认是1024个，也就是说features_SLAM()中前1024个是预留存储aruco点的
     // Append a new SLAM feature if we have the room to do so
     // Also check that we have waited our delay amount (normally prevents bad first set of slam points)
     if(state->options().max_slam_features > 0 && timestamp-startup_time >= dt_statupdelay && (int)state->features_SLAM().size() < state->options().max_slam_features+curr_aruco_tags) {
@@ -608,41 +622,48 @@ void VioManager::do_feature_propagate_update(double timestamp) {
         // Note: we remove them from the feat_marg array since we don't want to reuse information...
         if(valid_amount > 0) {
             feats_slam.insert(feats_slam.end(), feats_maxtracks.end()-valid_amount, feats_maxtracks.end());
+            // 虽然有很多点达到了最大长度，但是slam_feature 数目有限，只有部分点从slam_maxtracks加入到slam_features中
             feats_maxtracks.erase(feats_maxtracks.end()-valid_amount, feats_maxtracks.end());
         }
     }
-
+    // features_SLAM()中Aruco点不超过max_aruco_features =1024，slam特征点不超过max_slam_features=50
+    // 将feature_slam 放入到state中
     // Loop through current SLAM features, we have tracks of them, grab them for this update!
     // Note: if we have a slam feature that has lost tracking, then we should marginalize it out
     // Note: if you do not use FEJ, these types of slam features *degrade* the estimator performance....
-    for (std::pair<const size_t, Landmark*> &landmark : state->features_SLAM()) {
+    for (std::pair<const size_t, Landmark*> &landmark : state->features_SLAM()) {                  // landmark 表示slam点的信息，由度度为3
         if(trackARUCO != nullptr) {
             Feature* feat1 = trackARUCO->get_feature_database()->get_feature(landmark.second->_featid);
             if(feat1 != nullptr) feats_slam.push_back(feat1);
         }
         Feature* feat2 = trackFEATS->get_feature_database()->get_feature(landmark.second->_featid);
-        if(feat2 != nullptr) feats_slam.push_back(feat2);
-        if(feat2 == nullptr) landmark.second->should_marg = true;
+        // 判断状态向量里面的slam_feature是否被当前帧跟踪到，如果没有跟踪到，设置该slam点应该被边缘化
+        if(feat2 != nullptr) feats_slam.push_back(feat2);   // 当前帧跟踪到了该slam_feature,将该slam点放入到feature_slam中
+        if(feat2 == nullptr) landmark.second->should_marg = true;  // 当前帧没有跟踪到，设置应该被边缘化，从状态向量里移除
     }
 
     // Lets marginalize out all old SLAM features here
     // These are ones that where not successfully tracked into the current frame
     // We do *NOT* marginalize out our aruco tags
+    // 只是边缘化旧的slam_feature，并没有将新的slam_feature加入到状态向量中
+    // 在msckf状态中marg掉老的点，而不会去除aruco标志点，边缘化老点第一帧中的，边缘化slam点，此时还没有边缘化这一个clone
     StateHelper::marginalize_slam(state);
 
     // Separate our SLAM features into new ones, and old ones
+    // 将feats_slam中的点进一步划分成老点feats_slam_UPDATE和新点feats_slam_DELAYED
     std::vector<Feature*> feats_slam_DELAYED, feats_slam_UPDATE;
     for(size_t i=0; i<feats_slam.size(); i++) {
         if(state->features_SLAM().find(feats_slam.at(i)->featid) != state->features_SLAM().end()) {
             feats_slam_UPDATE.push_back(feats_slam.at(i));
             //ROS_INFO("[UPDATE-SLAM]: found old feature %d (%d measurements)",(int)feats_slam.at(i)->featid,(int)feats_slam.at(i)->timestamps_left.size());
         } else {
-            feats_slam_DELAYED.push_back(feats_slam.at(i));
+            feats_slam_DELAYED.push_back(feats_slam.at(i));          // 新的点，需要三角
             //ROS_INFO("[UPDATE-SLAM]: new feature ready %d (%d measurements)",(int)feats_slam.at(i)->featid,(int)feats_slam.at(i)->timestamps_left.size());
         }
     }
 
     // Concatenate our MSCKF feature arrays (i.e., ones not being used for slam updates)
+    // MSCKF 的点（加入丢失的点feats_lost，滑窗内最老的需要边缘化点feats_marg，长期跟踪的点feats_maxtracks）
     std::vector<Feature*> featsup_MSCKF = feats_lost;
     featsup_MSCKF.insert(featsup_MSCKF.end(), feats_marg.begin(), feats_marg.end());
     featsup_MSCKF.insert(featsup_MSCKF.end(), feats_maxtracks.begin(), feats_maxtracks.end());
@@ -654,12 +675,14 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
     // Pass them to our MSCKF updater
     // We update first so that our SLAM initialization will be more accurate??
+
+    // 更新（MSCKF点和SLAM点分别更新）
     updaterMSCKF->update(state, featsup_MSCKF);
     rT4 =  boost::posix_time::microsec_clock::local_time();
 
     // Perform SLAM delay init and update
-    updaterSLAM->update(state, feats_slam_UPDATE);
-    updaterSLAM->delayed_init(state, feats_slam_DELAYED);
+    updaterSLAM->update(state, feats_slam_UPDATE);        // slam 点更新   // 已经成功三角化的点
+    updaterSLAM->delayed_init(state, feats_slam_DELAYED);  // slam 点延迟三角化  //未三角化的点
     rT5 =  boost::posix_time::microsec_clock::local_time();
 
 
@@ -669,6 +692,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
 
     // Save all the MSCKF features used in the update
+    // 保存MSCKF更新后的feature 3d点在世坐标标系中的坐标，并标记为删除状态
     good_features_MSCKF.clear();
     for(Feature* feat : featsup_MSCKF) {
         good_features_MSCKF.push_back(feat->p_FinG);
@@ -678,6 +702,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // Remove features that where used for the update from our extractors at the last timestep
     // This allows for measurements to be used in the future if they failed to be used this time
     // Note we need to do this before we feed a new image, as we want all new measurements to NOT be deleted
+    // 清除跟踪器中to_delete=ture的点,也就是清楚用于MSCKF更新的点，这些点在当前帧中的跟踪中已经丢失了
     trackFEATS->get_feature_database()->cleanup();
     if(trackARUCO != nullptr) {
         trackARUCO->get_feature_database()->cleanup();
@@ -688,14 +713,16 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     //===================================================================================
 
     // First do anchor change if we are about to lose an anchor pose
+    // 若特征点的表达方式为局部，则需要更新anchor坐标系，这里采用的是观测到该特征点的最后一帧来作为局部坐标帧
     updaterSLAM->change_anchors(state);
 
-    // Marginalize the oldest clone of the state if we are at max length
+    // Marginalize the oldest clone of the state if we are at max length   marg去除较老的clone 帧
     if((int)state->n_clones() > state->options().max_clone_size) {
         StateHelper::marginalize_old_clone(state);
     }
 
     // Finally if we are optimizing our intrinsics, update our trackers
+    // 更新相机内参数,如果有这个优化的话
     if(state->options().do_calib_camera_intrinsics) {
         // Get vectors arrays
         std::map<size_t, Eigen::VectorXd> cameranew_calib;
