@@ -553,6 +553,8 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // 避免MSCKF状态中维护的特征点过多，统计丢失的feats_lost 和老的marg候选点feats_marg
     std::vector<Feature*> feats_lost, feats_marg, feats_slam;         // 跟丢的点，需要marg的点，以及slam点
 
+    std::vector<Feature*> feats_map;
+
     // 返回的feats_lost包含了到当前state时刻往前已经丢失的特征点ID 和坐标信息。
     feats_lost = trackFEATS->get_feature_database()->features_not_containing_newer(state->timestamp());          // 获得到当前时间已丢失的特征点
 
@@ -570,7 +572,8 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
     // We also need to make sure that the max tracks does not contain any lost features
     // This could happen if the feature was lost in the last frame, but has a measurement at the marg timestep
-    // 在feats_lost找和剔除重复出现在marg内的点，如果一个点既是跟丢的点也是需要margin的点，将这个点从lost列表中删除，放入到margin中，也就是说跟丢的点lost中不会有从第一帧跟踪到的点
+    // 在feats_lost找和剔除重复出现在marg内的点，如果一个点既是跟丢的点也是需要margin的点，将这个点从lost列表中删除，放入到margin中，
+    // 也就是说跟丢的点lost中不会有从第一帧跟踪到的点，lost点长度小于窗口
     auto it1 = feats_lost.begin();
     while(it1 != feats_lost.end()) {
         if(std::find(feats_marg.begin(),feats_marg.end(),(*it1)) != feats_marg.end()) {
@@ -638,32 +641,40 @@ void VioManager::do_feature_propagate_update(double timestamp) {
         }
         Feature* feat2 = trackFEATS->get_feature_database()->get_feature(landmark.second->_featid);
         // 判断状态向量里面的slam_feature是否被当前帧跟踪到，如果没有跟踪到，设置该slam点应该被边缘化
-        if(feat2 != nullptr) feats_slam.push_back(feat2);   // 当前帧跟踪到了该slam_feature,将该slam点放入到feature_slam中
+        if(feat2 != nullptr){
+            if(feat2->timestamps[0].size() > state->options().max_clone_size*1.5){
+                feats_map.push_back(feat2);                      // 跟踪到了且长度大于窗口的1.5倍加入到map point
+            }
+            else feats_slam.push_back(feat2);   // 当前帧跟踪到了该slam_feature,将该slam点放入到feature_slam中
+        }
         if(feat2 == nullptr) landmark.second->should_marg = true;  // 当前帧没有跟踪到，设置应该被边缘化，从状态向量里移除
     }
 
     // Lets marginalize out all old SLAM features here
     // These are ones that where not successfully tracked into the current frame
     // We do *NOT* marginalize out our aruco tags
-    // 只是边缘化旧的slam_feature，并没有将新的slam_feature加入到状态向量中
+    // 只是边缘化状态向量stata中旧的slam_feature，并没有将新的slam_feature加入到状态向量中
     // 在msckf状态中marg掉老的点，而不会去除aruco标志点，边缘化老点第一帧中的，边缘化slam点，此时还没有边缘化这一个clone
     StateHelper::marginalize_slam(state);
 
     // Separate our SLAM features into new ones, and old ones
-    // 将feats_slam中的点进一步划分成老点feats_slam_UPDATE和新点feats_slam_DELAYED
+    // 将feats_slam中的点进一步划分成老点feats_slam_UPDATE(老点是已经在状态向量中，成功三角化了，此时只多了一个观测，只需要更新就行，不必再三角化)
+    // 和新点feats_slam_DELAYED(新跟踪到的特征点长度达到窗口大小，成为新的slam_feature，此时需要重新三角化)
     std::vector<Feature*> feats_slam_DELAYED, feats_slam_UPDATE;
     for(size_t i=0; i<feats_slam.size(); i++) {
-        if(state->features_SLAM().find(feats_slam.at(i)->featid) != state->features_SLAM().end()) {
+        if(state->features_SLAM().find(feats_slam.at(i)->featid) != state->features_SLAM().end()) {   // 在状态向量中找得到该slam特征点，已经三角化
             feats_slam_UPDATE.push_back(feats_slam.at(i));
             //ROS_INFO("[UPDATE-SLAM]: found old feature %d (%d measurements)",(int)feats_slam.at(i)->featid,(int)feats_slam.at(i)->timestamps_left.size());
         } else {
-            feats_slam_DELAYED.push_back(feats_slam.at(i));          // 新的点，需要三角
+            feats_slam_DELAYED.push_back(feats_slam.at(i));          // 新的点，需要三角化
             //ROS_INFO("[UPDATE-SLAM]: new feature ready %d (%d measurements)",(int)feats_slam.at(i)->featid,(int)feats_slam.at(i)->timestamps_left.size());
         }
     }
 
     // Concatenate our MSCKF feature arrays (i.e., ones not being used for slam updates)
-    // MSCKF 的点（加入丢失的点feats_lost，滑窗内最老的需要边缘化点feats_marg，长期跟踪的点feats_maxtracks）
+    // MSCKF 的点（加入丢失的点feats_lost(长度小于窗口)，
+    // 滑窗内最老的需要边缘化点feats_marg(长度未达到slam点的要求)，
+    // 长期跟踪的点feats_maxtracks（多于slam点数目限制的）），将这些点看看作是MSCKF的点
     std::vector<Feature*> featsup_MSCKF = feats_lost;
     featsup_MSCKF.insert(featsup_MSCKF.end(), feats_marg.begin(), feats_marg.end());
     featsup_MSCKF.insert(featsup_MSCKF.end(), feats_maxtracks.begin(), feats_maxtracks.end());
@@ -681,8 +692,8 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     rT4 =  boost::posix_time::microsec_clock::local_time();
 
     // Perform SLAM delay init and update
-    updaterSLAM->update(state, feats_slam_UPDATE);        // slam 点更新   // 已经成功三角化的点
-    updaterSLAM->delayed_init(state, feats_slam_DELAYED);  // slam 点延迟三角化  //未三角化的点
+    updaterSLAM->update(state, feats_slam_UPDATE);        // slam 点更新   // 已经成功三角化的点   ，已经在状态向量中
+    updaterSLAM->delayed_init(state, feats_slam_DELAYED);  // slam 点延迟三角化  //未三角化的点   新的slam点，要要加入到状态向量中
     rT5 =  boost::posix_time::microsec_clock::local_time();
 
 
@@ -692,7 +703,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
 
     // Save all the MSCKF features used in the update
-    // 保存MSCKF更新后的feature 3d点在世坐标标系中的坐标，并标记为删除状态
+    // 保存MSCKF更新后的feature 3d点在世界坐标系中的坐标，并标记为删除状态
     good_features_MSCKF.clear();
     for(Feature* feat : featsup_MSCKF) {
         good_features_MSCKF.push_back(feat->p_FinG);
@@ -702,7 +713,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // Remove features that where used for the update from our extractors at the last timestep
     // This allows for measurements to be used in the future if they failed to be used this time
     // Note we need to do this before we feed a new image, as we want all new measurements to NOT be deleted
-    // 清除跟踪器中to_delete=ture的点,也就是清楚用于MSCKF更新的点，这些点在当前帧中的跟踪中已经丢失了
+    // 清除跟踪器中to_delete=ture的点,也就是清楚用于MSCKF更新的点，这些点在当前帧中的跟踪中已经丢失了，从关键点据据库中删除，避免下次margin时再次进行MSCKF更新
     trackFEATS->get_feature_database()->cleanup();
     if(trackARUCO != nullptr) {
         trackARUCO->get_feature_database()->cleanup();
@@ -713,9 +724,10 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     //===================================================================================
 
     // First do anchor change if we are about to lose an anchor pose
-    // 若特征点的表达方式为局部，则需要更新anchor坐标系，这里采用的是观测到该特征点的最后一帧来作为局部坐标帧
+    // 若特征点的表达方式为局部，则需要更新anchor坐标系，这里采用的是观测到该特征点的最后一帧来作为局部坐标帧，更新slam点的局部参考帧
     updaterSLAM->change_anchors(state);
 
+    // 将所有点处理完后，边缘化最老帧，直接从协方差矩阵中删除最老帧的相关行和列，并从状态向量中剔除
     // Marginalize the oldest clone of the state if we are at max length   marg去除较老的clone 帧
     if((int)state->n_clones() > state->options().max_clone_size) {
         StateHelper::marginalize_old_clone(state);

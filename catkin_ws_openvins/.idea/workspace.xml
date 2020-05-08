@@ -79,7 +79,8 @@
       <workItem from="1578890270696" duration="39875000" />
       <workItem from="1579063497279" duration="61988000" />
       <workItem from="1583205059278" duration="86075000" />
-      <workItem from="1585224258703" duration="341000" />
+      <workItem from="1585224258703" duration="6449000" />
+      <workItem from="1588910277629" duration="2736000" />
     </task>
     <servers />
   </component>
@@ -87,41 +88,13 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="592" y="200" key="#TODO" timestamp="1579077896677">
+    <state x="609" y="347" key="com.intellij.ide.util.TipDialog" timestamp="1588910279337">
       <screen x="65" y="24" width="1855" height="1056" />
     </state>
-    <state x="592" y="200" key="#TODO/65.24.1855.1056@65.24.1855.1056" timestamp="1579077896677" />
-    <state x="380" y="193" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1578550103376">
+    <state x="609" y="347" key="com.intellij.ide.util.TipDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1588910279337" />
+    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup" timestamp="1588912104791">
       <screen x="65" y="24" width="1855" height="1056" />
     </state>
-    <state x="380" y="193" key="#com.intellij.execution.impl.EditConfigurationsDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1578550103376" />
-    <state x="732" y="439" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1579084715804">
-      <screen x="65" y="24" width="1855" height="1056" />
-    </state>
-    <state x="732" y="439" key="#com.intellij.fileTypes.FileTypeChooser/65.24.1855.1056@65.24.1855.1056" timestamp="1579084715804" />
-    <state x="816" y="372" key="FileChooserDialogImpl" timestamp="1578473752922">
-      <screen x="65" y="24" width="1855" height="1056" />
-    </state>
-    <state x="816" y="372" key="FileChooserDialogImpl/65.24.1855.1056@65.24.1855.1056" timestamp="1578473752922" />
-    <state x="653" y="367" key="com.intellij.ide.util.TipDialog" timestamp="1578890272516">
-      <screen x="65" y="24" width="1855" height="1056" />
-    </state>
-    <state x="653" y="367" key="com.intellij.ide.util.TipDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1578890272516" />
-    <state x="569" y="135" width="1157" height="886" key="dock-window-1" timestamp="1579071752050">
-      <screen x="65" y="24" width="1855" height="1056" />
-    </state>
-    <state x="569" y="135" width="1157" height="886" key="dock-window-1/65.24.1855.1056@65.24.1855.1056" timestamp="1579071752050" />
-    <state x="977" y="294" width="707" height="786" key="find.popup" timestamp="1578921275638">
-      <screen x="65" y="24" width="1855" height="1056" />
-    </state>
-    <state x="977" y="294" width="707" height="786" key="find.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1578921275638" />
-    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup" timestamp="1584706062480">
-      <screen x="65" y="24" width="1855" height="1056" />
-    </state>
-    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1584706062480" />
-    <state x="758" y="528" key="vcs.readOnlyHandler.ReadOnlyStatusDialog" timestamp="1578473824969">
-      <screen x="65" y="24" width="1855" height="1056" />
-    </state>
-    <state x="758" y="528" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1578473824969" />
+    <state x="742" y="396" width="672" height="678" key="search.everywhere.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1588912104791" />
   </component>
 </project>

@@ -135,12 +135,12 @@ Eigen::MatrixXd StateHelper::get_marginal_covariance(State *state, const std::ve
 }
 
 
-
+// marginalize 窗口中的状态变量
 // marg 去除SLAM点landmark  , 这个函数可以marg掉所有一阶子变量
 void StateHelper::marginalize(State *state, Type *marg) {
 
     // Check if the current state has the element we want to marginalize
-    // 确认状态中是否有slam特征点landmark
+    // 确认状态向量中是否有slam特征点landmark
     if (std::find(state->variables().begin(), state->variables().end(), marg) == state->variables().end()) {
         std::cerr << "CovManager::marginalize() - Called on variable that is not in the state" << std::endl;
         std::cerr << "CovManager::marginalize() - Marginalization, does NOT work on sub-variables yet..." << std::endl;

@@ -125,7 +125,6 @@ namespace ov_msckf {
         std::map<int, double> chi_squared_table;
 
 
-
     };
 
 
